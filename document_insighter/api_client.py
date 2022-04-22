@@ -46,6 +46,7 @@ class DocumentInsighter:
             self.client_id,
             token=self._load_token(),
             scope=["openid", "profile", "offline_access"],
+            redirect_uri=REDIRECT_URI,
             auto_refresh_url=TOKEN_URL,
             token_updater=self._token_saver,
         )
@@ -56,12 +57,9 @@ class DocumentInsighter:
                 json.dump(token, fp)
 
     def _load_token(self):
-        if self.token_filename:
-            if os.path.exists(self.token_filename):
-                with open(self.token_filename, "r") as fp:
-                    return json.load(fp)
-            else:
-                raise ValueError("Token file does not found")
+        if self.token_filename and os.path.exists(self.token_filename):
+            with open(self.token_filename, "r") as fp:
+                return json.load(fp)
         elif os.getenv("INSIGHTER_CLIENT_TOKEN_JSON"):
             return json.loads(os.getenv("INSIGHTER_CLIENT_TOKEN_JSON"))
 
