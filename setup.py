@@ -1,9 +1,9 @@
-import setuptools
+from setuptools import setup, find_packages
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-setuptools.setup(
+setup(
     name='document-insighter',
     version='0.0.1',
     author='Wang Kai',
@@ -16,6 +16,6 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/deepsite/document-insighter-python/issues"
     },
     license='MIT',
-    packages=['document-insighter'],
+    packages=find_packages(exclude=("tests*",)),
     install_requires=['requests-oauthlib==1.3.1'],
 )
