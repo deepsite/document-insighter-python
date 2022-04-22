@@ -38,7 +38,8 @@ document_insighter.fetch_token()
 from datetime import datetime
 
 pages_generator = document_insighter.query_extractions_pages(datetime(2022, 4, 13), datetime(2022, 5, 17), page_size=50)
-pages = [x for x in pages_generator]
+extractions = [x for x in page for page in pages_generator]
+
 ```
 
 # License
