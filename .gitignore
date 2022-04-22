@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 .vscode/*
+insighter_token.json
+local/*
