@@ -52,7 +52,7 @@ class DocumentInsighter:
         )
 
     def _token_saver(self, token):
-        if token:
+        if token and self.token_filename and os.path.exists(self.token_filename):
             with open(self.token_filename, "w") as fp:
                 json.dump(token, fp)
 
