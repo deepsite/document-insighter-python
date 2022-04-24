@@ -40,6 +40,7 @@ from datetime import datetime
 pages_generator = document_insighter.query_extractions_pages(datetime(2022, 4, 13), datetime(2022, 4, 14), page_size=50)
 extractions = [x for page in pages_generator for x in page]
 
+# read first extraction
 sections = extractions[0].get('data').get('sections')
 batch_sections = list(filter(lambda x:x.get('category') == 'coa_batch', sections))
 aggregation_sections = list(filter(lambda x:x.get('category') == 'coa_aggregation', sections))

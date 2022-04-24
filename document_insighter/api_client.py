@@ -78,10 +78,14 @@ class DocumentInsighter:
             self._token_saver(token)
 
     def query_extractions_pages(
-        self, start_date: datetime, end_date: datetime, page_size=50
+        self,
+        category: str,
+        start_date: datetime,
+        end_date: datetime,
+        page_size: int = 50,
     ) -> Generator:
         """Query extraction pages by dates
-
+        :param category extraction category, like NB_COA
         :param start_date filter extraction processed after this date,
             start date is inclusive.
         :prarm end_date filter extraction processed after this date, exclusive
@@ -90,13 +94,14 @@ class DocumentInsighter:
         :returns pages in generator. each page is a list of extraction
         """
         params = {
+            "category": category,
             "startDate": start_date.strftime(SEARCH_DATE_FORMAT),
             "endDate": end_date.strftime(SEARCH_DATE_FORMAT),
             "page": 0,
             "size": page_size,
         }
         res = self.oauth.get(
-            f"{self.env.host}/api/extraction-exporting/nb_coa/extractions",
+            f"{self.env.host}/api/extraction-exporting/extractions",
             params=params,
             client_id=self.client_id,
             client_secret=self.client_secret,
