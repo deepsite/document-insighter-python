@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="document-insighter",
-    version="0.0.5",
+    version="0.0.6",
     author="Wang Kai",
     author_email="wangkai@godeepsite.com",
     description="Document Insighter Python Client",
