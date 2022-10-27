@@ -52,7 +52,8 @@ class DocumentInsighter:
         )
 
     def _token_saver(self, token):
-        if token and self.token_filename and os.path.exists(self.token_filename):
+        if token and self.token_filename:
+            os.makedirs(os.path.abspath(os.path.dirname(self.token_filename)), exist_ok=True)
             with open(self.token_filename, "w") as fp:
                 json.dump(token, fp)
 
