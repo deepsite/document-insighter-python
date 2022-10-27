@@ -112,7 +112,7 @@ class DocumentInsighter:
 
         while res.links.get("next") is not None:
             res = self.oauth.get(
-                res.links.get("next").get("url").replace("http", "https"),
+                res.links.get("next").get("url").replace("http://", "https://"),
                 client_id=self.client_id,
                 client_secret=self.client_secret,
             )
