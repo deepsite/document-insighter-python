@@ -7,11 +7,13 @@ from datetime import datetime
 @dataclass
 class EnvType:
     host: str
+    service_account_token_url: str
 
 
 class Env:
-    PRODUCTION = EnvType("https://document-insighter.godeepsite.com")
-    STAGING = EnvType("https://document-insighter-staging.godeepsite.com")
+    PRODUCTION = EnvType("https://document-insighter.godeepsite.com", "https://prod-document-insighter-id.auth.us-east-1.amazoncognito.com/oauth2/token")
+    STAGING = EnvType("https://document-insighter-staging.godeepsite.com", "https://staging-document-insighter-id.auth.us-east-1.amazoncognito.com/oauth2/token")
+    DEV = EnvType("https://65-181-89-178.ap.ngrok.io", "https://dev-document-insighter-id.auth.us-east-1.amazoncognito.com/oauth2/token")
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)

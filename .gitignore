@@ -102,7 +102,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env*
 .venv
 env/
 venv/
@@ -131,3 +131,4 @@ dmypy.json
 .vscode/*
 insighter_token.json
 local/*
+/service-account-token.json
