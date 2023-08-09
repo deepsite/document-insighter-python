@@ -3,6 +3,9 @@ import logging
 import os
 from datetime import datetime
 from typing import Generator
+
+from requests.sessions import merge_setting
+from requests.structures import CaseInsensitiveDict
 from requests_oauthlib import OAuth2Session
 from document_insighter.model import EnvType
 import polling2
@@ -10,18 +13,13 @@ import polling2
 SEARCH_DATE_FORMAT = "%Y-%m-%d"
 logger = logging.getLogger(__name__)
 
+
 class DocumentInsighter:
-    def __init__(
-            self,
-            env: EnvType,
-            client_id,
-            client_secret,
-            token_filename,
-            token_json
-    ):
+    def __init__(self, env: EnvType, client_id, client_secret, token_filename, token_json, tenant: str):
         """
         The APIClient for communication with Document Insighter API.
 
+        :param tenant: tenant name
         :param env used for swtich production and staging env
         :param client_id client_id of the okta api client application.
             env variable: INSIGHTER_CLIENT_ID
@@ -34,6 +32,15 @@ class DocumentInsighter:
         self.client_secret = client_secret
         self.token_filename = token_filename
         self.token_json = token_json
+        self.tenant = tenant
+        self.oauth = None
+        self.default_headers = CaseInsensitiveDict({
+            "X-CURRENT-TENANT": tenant,
+        })
+
+    def _append_default_headers(self):
+        if self.oauth:
+            self.oauth.headers = merge_setting(self.oauth.headers, self.default_headers, dict_class=CaseInsensitiveDict)
 
     def _token_saver(self, token):
         if token:
@@ -57,10 +64,10 @@ class DocumentInsighter:
             token['access_token'] = token['id_token']
         return token
 
-    def upload_document(self, category, file_path):
+    def upload_document(self, category, file_path, metadata=None):
         params = {"category": category}
         files = {
-            'fields': (None, json.dumps([{}]), 'application/json'),
+            'fields': (None, json.dumps([metadata or {}]), 'application/json'),
             'files': (os.path.basename(file_path), open(file_path, 'rb'), 'application/octet-stream')
         }
 
@@ -85,18 +92,18 @@ class DocumentInsighter:
         logger.info("Ends polling extractions.")
         return extractions
 
-    def get_channel_log_status(self, id):
+    def get_channel_log_status(self, channel_log_id):
         res = self.oauth.get(
-            f"{self.env.host}/api/document-channel-logs/{id}/status",
+            f"{self.env.host}/api/document-channel-logs/{channel_log_id}/status",
             client_id=self.client_id,
             client_secret=self.client_secret,
         )
         res.raise_for_status()
         return res.json()
 
-    def get_channel_extractions_exporting(self, id):
+    def get_channel_extractions_exporting(self, channel_log_id):
         res = self.oauth.get(
-            f"{self.env.host}/api/extraction-exporting/document-channel-logs/{id}/extractions",
+            f"{self.env.host}/api/extraction-exporting/document-channel-logs/{channel_log_id}/extractions",
             client_id=self.client_id,
             client_secret=self.client_secret,
         )
@@ -111,12 +118,11 @@ class DocumentInsighter:
             page_size: int = 50,
     ) -> Generator:
         """Query extraction pages by dates
-        :param category extraction category, like NB_COA
-        :param start_date filter extraction processed after this date,
+        :param category: extraction category, like NB_COA
+        :param start_date: filter extraction processed after this date,
             start date is inclusive.
-        :prarm end_date filter extraction processed after this date, exclusive
-        :page_size number of extraction in each page
-
+        :param end_date: filter extraction processed after this date, exclusive
+        :param page_size: number of extraction in each page
         :returns pages in generator. each page is a list of extraction
         """
         params = {
@@ -153,7 +159,8 @@ class ServiceAccountClient(DocumentInsighter):
             client_id=os.getenv("INSIGHTER_SA_CLIENT_ID"),
             client_secret=os.getenv("INSIGHTER_SA_CLIENT_SECRET"),
             token_filename=os.getenv("INSIGHTER_SA_CLIENT_TOKEN_PATH"),
-            token_json=os.getenv("INSIGHTER_SA_CLIENT_TOKEN_JSON")
+            token_json=os.getenv("INSIGHTER_SA_CLIENT_TOKEN_JSON"),
+            tenant=os.getenv("INSIGHTER_TENANT"),
     ):
         """
         The APIClient for communication with Document Insighter API.
@@ -165,7 +172,7 @@ class ServiceAccountClient(DocumentInsighter):
             env variable: INSIGHTER_CLIENT_TOKEN_PATH. init token can be passed
             with env variable INSIGHTER_CLIENT_TOKEN_JSON
         """
-        super().__init__(env, client_id, client_secret, token_filename, token_json)
+        super().__init__(env, client_id, client_secret, token_filename, token_json, tenant)
 
         self.oauth = OAuth2Session(
             self.client_id,
@@ -175,6 +182,7 @@ class ServiceAccountClient(DocumentInsighter):
             auto_refresh_url=self.env.service_account_token_url,
             token_updater=self._token_saver,
         )
+        self._append_default_headers()
 
     def fetch_token(self, force_fetch: bool = False):
         if not self.oauth.token:
@@ -195,7 +203,8 @@ class OktaApplicationClient(DocumentInsighter):
             client_id=os.getenv("INSIGHTER_CLIENT_ID"),
             client_secret=os.getenv("INSIGHTER_CLIENT_SECRET"),
             token_filename=os.getenv("INSIGHTER_CLIENT_TOKEN_PATH"),
-            token_json=os.getenv("INSIGHTER_CLIENT_TOKEN_JSON")
+            token_json=os.getenv("INSIGHTER_CLIENT_TOKEN_JSON"),
+            tenant=os.getenv("INSIGHTER_TENANT"),
     ):
         """
         The APIClient for communication with Document Insighter API.
@@ -212,7 +221,7 @@ class OktaApplicationClient(DocumentInsighter):
             env variable: INSIGHTER_CLIENT_TOKEN_PATH. init token can be passed
             with env variable INSIGHTER_CLIENT_TOKEN_JSON
         """
-        super().__init__(env, client_id, client_secret, token_filename, token_json)
+        super().__init__(env, client_id, client_secret, token_filename, token_json, tenant)
         self.idp_id = idp_id
         self.oauth = OAuth2Session(
             self.client_id,
@@ -222,6 +231,7 @@ class OktaApplicationClient(DocumentInsighter):
             auto_refresh_url=self.TOKEN_URL,
             token_updater=self._token_saver,
         )
+        self._append_default_headers()
 
     def fetch_token(self, force_fetch: bool = False):
         if not self.oauth.token or force_fetch:
