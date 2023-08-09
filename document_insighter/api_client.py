@@ -7,7 +7,7 @@ from typing import Generator
 from requests.sessions import merge_setting
 from requests.structures import CaseInsensitiveDict
 from requests_oauthlib import OAuth2Session
-from document_insighter.model import EnvType
+from document_insighter.model import EnvType, Env
 import polling2
 
 SEARCH_DATE_FORMAT = "%Y-%m-%d"
@@ -81,8 +81,16 @@ class DocumentInsighter:
         logs = res.json()
         return logs[0] if logs else None
 
-    def upload_and_poll(self, category: str, file_path: str, timeout=600):
-        log = self.upload_document(category, file_path)
+    def upload_and_poll(self, category: str, file_path: str, metadata: dict = None, timeout=600):
+        """
+        Upload a document and poll the extractions until it is completed or failed.
+        :param category: extraction category
+        :param file_path: local file path
+        :param metadata: file metadata and channel log metadata
+        :param timeout: request timeout
+        :return: extraction list
+        """
+        log = self.upload_document(category, file_path, metadata)
         log_id = log.get("id")
         logger.info("Starts polling extractions.")
         polling2.poll(target=lambda: self.get_channel_log_status(log_id).get("status") in ['COMPLETED', 'FAILED'],
