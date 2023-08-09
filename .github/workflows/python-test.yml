@@ -4,6 +4,7 @@
 name: Python testing
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -39,6 +40,10 @@ jobs:
           INSIGHTER_CLIENT_ID: ${{ secrets.INSIGHTER_CLIENT_ID }}
           INSIGHTER_CLIENT_SECRET: ${{ secrets.INSIGHTER_CLIENT_SECRET }}
           INSIGHTER_CLIENT_TOKEN_JSON: ${{ secrets.INSIGHTER_CLIENT_TOKEN_JSON }}
+          INSIGHTER_SA_CLIENT_ID: ${{ secrets.INSIGHTER_SA_CLIENT_ID }}
+          INSIGHTER_SA_CLIENT_SECRET: ${{ secrets.INSIGHTER_SA_CLIENT_SECRET }}
+          INSIGHTER_SA_CLIENT_TOKEN_JSON: ${{ secrets.INSIGHTER_SA_CLIENT_TOKEN_JSON }}
+          INSIGHTER_TENANT: ${{ secrets.INSIGHTER_TENANT }}
 
         run: |
           pytest ./tests

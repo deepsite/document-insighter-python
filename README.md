@@ -22,6 +22,9 @@ INSIGHTER_CLIENT_SECRET=xxxx
 # Client access token file path, no need to create it
 INSIGHTER_CLIENT_TOKEN_PATH=insighter_token.json
 
+# Tenant name, which can be found in settings page
+INSIGHTER_TENANT=xxxx
+
 ```
 
 #### Fetch Token
@@ -44,6 +47,9 @@ INSIGHTER_SA_CLIENT_SECRET=xxxx
 
 # Path of service account access token, which download from settings page
 INSIGHTER_SA_CLIENT_TOKEN_PATH=service-account-token.json
+
+# Tenant name, which can be found in settings page
+INSIGHTER_TENANT=xxxx
 ```
 #### Create Client
 

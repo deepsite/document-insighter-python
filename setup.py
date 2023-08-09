@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="document-insighter",
-    version="0.0.7",
+    version="0.0.8",
     author="Wang Kai",
     author_email="wangkai@godeepsite.com",
     description="Document Insighter Python Client",
@@ -17,5 +17,5 @@ setup(
     },
     license="MIT",
     packages=find_packages(exclude=("tests*",)),
-    install_requires=["requests-oauthlib==1.3.1", "dataclasses-json==0.5.7", "polling2==0.5.0"],
+    install_requires=["requests==2.31.0", "requests-oauthlib==1.3.1", "dataclasses-json==0.5.7", "polling2==0.5.0"],
 )
