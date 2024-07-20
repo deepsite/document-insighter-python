@@ -7,8 +7,12 @@ from typing import Generator
 from requests.sessions import merge_setting
 from requests.structures import CaseInsensitiveDict
 from requests_oauthlib import OAuth2Session
+
+from document_insighter.exceptions import ChannelLogExistsError
 from document_insighter.model import EnvType, Env
 import polling2
+
+from document_insighter.helpers import md5_checksum
 
 SEARCH_DATE_FORMAT = "%Y-%m-%d"
 logger = logging.getLogger(__name__)
@@ -36,7 +40,7 @@ class DocumentInsighter:
         self.oauth = None
         self.default_headers = CaseInsensitiveDict({
             "X-CURRENT-TENANT": tenant,
-        })
+        }) if tenant else {}
 
     def _append_default_headers(self):
         if self.oauth:
@@ -45,8 +49,9 @@ class DocumentInsighter:
     def _token_saver(self, token):
         if token:
             id_token = token['id_token']
-            token['access_token'] = id_token
-            self.oauth.access_token = id_token
+            if 'access_token' not in token:
+                token['access_token'] = id_token
+                self.oauth.access_token = id_token
             if self.token_filename:
                 os.makedirs(os.path.abspath(os.path.dirname(self.token_filename)), exist_ok=True)
                 with open(self.token_filename, "w") as fp:
@@ -60,16 +65,26 @@ class DocumentInsighter:
         elif self.token_json:
             token = json.loads(self.token_json)
 
-        if token:
+        if token and 'access_token' not in token:
             token['access_token'] = token['id_token']
         return token
 
-    def upload_document(self, category, file_path, metadata=None):
-        params = {"category": category}
+    def upload_document(self, category, file_path, metadata=None, ignore_duplicate=False):
+        params = {"category": category, 'extracts[]': ['true']}
         files = {
             'fields': (None, json.dumps([metadata or {}]), 'application/json'),
             'files': (os.path.basename(file_path), open(file_path, 'rb'), 'application/octet-stream')
         }
+
+        if not ignore_duplicate:
+            md5 = md5_checksum(file_path)
+            existing_channel_log_uuids = self.oauth.get(
+                f"{self.env.host}/api/document-channel-logs/md5-checksum/{md5}/uuids",
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+            ).json()
+            if existing_channel_log_uuids:
+                raise ChannelLogExistsError(md5, existing_channel_log_uuids)
 
         res = self.oauth.post(
             f"{self.env.host}/api/documents/common/upload", files=files, params=params,
