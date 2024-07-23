@@ -1,88 +1,102 @@
-# Document Insighter Python Client
 
-`document-insighter` is a set of tools that enables developers to interactive with Document Insighter API, like query extraction results.
+# Document Insighter Client
 
-# Installation
+Document Insighter Client is a Python library for interacting with the Document Insighter API. It allows you to query document extractions and process the data for various document types.
 
-`pip install document-insighter`
+## Getting Started
 
-# Getting Started
+### Prerequisites
 
-## Authentication 
-### OKTA Base Applications
+- Python 3.7+
 
-#### Configure ENV variables
+### Installation
 
-```bash
-# Client application credentials
-INSIGHTER_CLIENT_IDP=xxxx
-INSIGHTER_CLIENT_ID=xxxx
-INSIGHTER_CLIENT_SECRET=xxxx
+1. Install the required dependencies using the provided `requirements.txt`:
 
-# Client access token file path, no need to create it
-INSIGHTER_CLIENT_TOKEN_PATH=insighter_token.json
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-# Tenant name, which can be found in settings page
-INSIGHTER_TENANT=xxxx
+### Configuration
 
+1. Add the necessary environment variables in the provided .env to your project.
+```
+INSIGHTER_CLIENT_IDP=xxxxxx
+INSIGHTER_CLIENT_ID=xxxxxx  
+INSIGHTER_CLIENT_SECRET=xxxxxx
+INSIGHTER_CLIENT_TOKEN_PATH=insighter_token.json  
+INSIGHTER_TENANT=xxx
 ```
 
-#### Fetch Token
+### Getting Started
 
-```python
-from document_insighter.api_client import OktaApplicationClient
-from document_insighter.model import Env, Extraction
+1. **Import Libraries**:
+Imports necessary libraries and modules
+    ```python
+   from document_insighter.api_client import OktaApplicationClient
+   from document_insighter.model import Env, Extraction
+   import pandas as pd
+   from datetime import datetime
+   ```
 
-# Change to Env.PRODUCTION for production
-document_insighter = OktaApplicationClient(Env.STAGING)
-document_insighter.fetch_token()
-```
+2. **Get Document Insighter Client**:
+   - Defines a function to create an instance of the `OktaApplicationClient` configured for the production environment.
+   - Fetches the API token for authentication and returns the client instance.
+    ```python
+   def get_insighter_client():
+       document_insighter = OktaApplicationClient(Env.PRODUCTION)
+       document_insighter.fetch_token()
+       return document_insighter
+   ```
+3. **Query Extractions**:
+   - Defines a function to query extractions from the Document Insighter API.
+   - Uses `get_insighter_client` to get the API client.
+   - Queries extraction pages based on the document type, start date, end date, and page size.
+   - Converts each page of results into `Extraction` objects and returns a list of extractions.
+   ```python
+   def query_extractions_pages(document_type, start_date, end_date, page_size=50):
+       document_insighter = get_insighter_client()
+       pages_generator = document_insighter.query_extractions_pages(document_type, start_date, end_date,
+                                                                    page_size=page_size)
+       extractions = [Extraction.from_dict(x) for page in pages_generator for x in page]
+       return extractions
+   ```
 
-### Service Account Base Applications
-#### Configure ENV variables
-```bash
-# Client application credentials
-INSIGHTER_SA_CLIENT_ID=xxxx
-INSIGHTER_SA_CLIENT_SECRET=xxxx
+4. **Run the Query**:
+Queries extractions for documents of type 'XXXXXX' between July 1, 2024, and July 10, 2024.
+   ```python
+   extractions = query_extractions_pages('XXXXXX', datetime(2024, 7, 1), datetime(2024, 7, 10))
+   ```
+   
 
-# Path of service account access token, which download from settings page
-INSIGHTER_SA_CLIENT_TOKEN_PATH=service-account-token.json
+5. **Print Total Extractions**:
+Prints the total number of extractions retrieved.
+   ```python
+   print("Total extractions:", len(extractions))
+   ```
 
-# Tenant name, which can be found in settings page
-INSIGHTER_TENANT=xxxx
-```
-#### Create Client
+6. **Access and Print First Extraction**:
+   - Accesses the first extraction in the list.
+   - Prints a link to review the extraction.
+   - Finds and prints the order number from the 'coa_header' section.
+   ```python
+   first_extraction = extractions[0]
+   
+   print("Extraction Link", f"https://document-insighter.godeepsite.com/extractions/{first_extraction.id}/review")
+   header_section = next(x for x in first_extraction.data.sections if x.category == 'coa_header')
+   print("Order #:", next(x for x in header_section.fields if x.name == 'order_number').value)
+   ```
 
-```python
-from document_insighter.api_client import ServiceAccountClient
-from document_insighter.model import Env
 
-document_insighter = ServiceAccountClient(Env.STAGING)
-```
-## Query Extractions
+7. **Access and Print Batch Sections**:
+   - Finds and prints batch numbers from 'coa_batch' sections.
+   - Converts 'test_parameters' table into a pandas DataFrame and prints it for each batch section.
+   ```python
+   batch_sections = [x for x in first_extraction.data.sections if x.category == 'coa_batch']
+   for section in batch_sections:
+       print("Batch #:", next(x for x in section.fields if x.name == 'batch_number').value)
 
-```python
-from datetime import datetime
-
-pages_generator = document_insighter.query_extractions_pages(datetime(2022, 4, 13), datetime(2022, 4, 14), page_size=50)
-extraction_dicts = [x for page in pages_generator for x in page]
-
-# read first extraction
-sections = extraction_dicts[0].get('data').get('sections')
-batch_sections = list(filter(lambda x:x.get('category') == 'coa_batch', sections))
-aggregation_sections = list(filter(lambda x:x.get('category') == 'coa_aggregation', sections))
-```
-
-```python
-# load json to models
-from typing import List
-extractions: List[Extraction] = [Extraction.from_dict(x) for x in extraction_dicts]
-```
-
-## Upload and Poll Extractions
-```python
-extractions = document_insighter.upload_and_poll("BR", 'tests/data/br_document.pdf')
-```
-# License
-
-MIT
+       coa_attributes_table = next(x for x in section.tables if x.name == 'test_parameters')
+       df = pd.DataFrame({col: col_obj.values for col, col_obj in coa_attributes_table.columns.items()})
+       print(df)
+   ```
