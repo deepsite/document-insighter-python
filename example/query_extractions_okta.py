@@ -8,7 +8,7 @@ from datetime import datetime
 from document_insighter.api_client import OktaApplicationClient
 from document_insighter.model import Env, Extraction
 import pandas as pd
-from typing import List, Optional
+from typing import List, Optional, Generator
 
 
 def get_insighter_client() -> OktaApplicationClient:
@@ -26,7 +26,7 @@ def query_extractions_pages(
         end_date: datetime,
         page_size: int = 50,
         tags: Optional[List[str]] = None
-) -> List[Extraction]:
+) -> Generator[Extraction, None, None]:
     """
     Query extractions by dates, types and tags and return a list of Extraction objects.
     """
@@ -38,9 +38,7 @@ def query_extractions_pages(
         page_size=page_size,
         tags=tags or []
     )
-    pages = [page for page in pages_generator]
-    extractions = [Extraction.from_dict(x) for page in pages for x in page]
-    return extractions
+    return (Extraction.from_dict(x) for page in pages_generator for x in page)
 
 
 def print_extraction(extraction: Extraction):
@@ -54,6 +52,7 @@ def print_extraction(extraction: Extraction):
         (section for section in extraction.data.sections if section.category == 'coa_header'),
         None
     )
+    print("Tags:", extraction.tags)
     if header_section is not None:
         print("Order #:", next(x for x in header_section.fields if x.name == 'order_number').value)
 
@@ -100,7 +99,10 @@ if __name__ == "__main__":
         page_size=args.page_size,
         tags=args.tags
     )
-    print(f"Total extractions: {len(extractions)}")
 
+    n = 0
     for extraction in extractions:
         print_extraction(extraction)
+        n += 1
+    print(f"Total extractions: {n}")
+

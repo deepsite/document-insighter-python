@@ -9,7 +9,7 @@ from requests.structures import CaseInsensitiveDict
 from requests_oauthlib import OAuth2Session
 
 from document_insighter.exceptions import ChannelLogExistsError
-from document_insighter.model import EnvType, Env
+from document_insighter.model import EnvType
 import polling2
 
 from document_insighter.helpers import md5_checksum
@@ -24,7 +24,7 @@ class DocumentInsighter:
         The APIClient for communication with Document Insighter API.
 
         :param tenant: tenant name
-        :param env used for swtich production and staging env
+        :param env used for switch production and staging env
         :param client_id client_id of the okta api client application.
             env variable: INSIGHTER_CLIENT_ID
         :param token_filename name of file which used to store token json.
@@ -92,6 +92,7 @@ class DocumentInsighter:
                 client_secret=self.client_secret,
             ).json()
             if existing_channel_log_uuids:
+                # TODO: name should be changed to File has been already uploaded
                 raise ChannelLogExistsError(md5, existing_channel_log_uuids)
 
         res = self.oauth.post(
@@ -285,7 +286,7 @@ class OktaApplicationClient(DocumentInsighter):
         """
         The APIClient for communication with Document Insighter API.
 
-        :param env used for swtich production and staging env
+        :param env used for switch production and staging env
         :param idp_id the identify provider id in DEEPSITE okta,
             based on customer okta integration.
             env variable: INSIGHTER_CLIENT_IDP
