@@ -38,7 +38,6 @@ class Column:
     """
     Column model, contains the name and values of the column in the table
     """
-    name: str
     values: List[str]
     standard_values: List[Optional[str]] = field(default_factory=lambda: [])
 
