@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 from requests.sessions import merge_setting
 from requests.structures import CaseInsensitiveDict
@@ -217,22 +217,28 @@ class ServiceAccountClient(DocumentInsighter):
     def __init__(
             self,
             env: EnvType,
-            client_id=os.getenv("INSIGHTER_SA_CLIENT_ID"),
-            client_secret=os.getenv("INSIGHTER_SA_CLIENT_SECRET"),
-            token_filename=os.getenv("INSIGHTER_SA_CLIENT_TOKEN_PATH"),
-            token_json=os.getenv("INSIGHTER_SA_CLIENT_TOKEN_JSON"),
-            tenant=os.getenv("INSIGHTER_TENANT"),
+            client_id: Optional[str] = None,
+            client_secret: Optional[str] = None,
+            token_filename: Optional[str] = None,
+            token_json: Optional[str] = None,
+            tenant: Optional[str] = None,
     ):
         """
         The APIClient for communication with Document Insighter API.
 
-        :param env used for swtich production and staging env
+        :param env used for swtitch production and staging env
         :param client_id client_id of the okta api client application.
             env variable: INSIGHTER_CLIENT_ID
         :param token_filename name of file which used to store token json.
             env variable: INSIGHTER_CLIENT_TOKEN_PATH. init token can be passed
             with env variable INSIGHTER_CLIENT_TOKEN_JSON
         """
+        client_id = client_id or os.getenv("INSIGHTER_SA_CLIENT_ID")
+        client_secret = client_secret or os.getenv("INSIGHTER_SA_CLIENT_SECRET")
+        token_filename = token_filename or os.getenv("INSIGHTER_SA_CLIENT_TOKEN_PATH")
+        token_json = token_json or os.getenv("INSIGHTER_SA_CLIENT_TOKEN_JSON")
+        tenant = tenant or os.getenv("INSIGHTER_TENANT")
+
         super().__init__(env, client_id, client_secret, token_filename, token_json, tenant)
 
         self.oauth = OAuth2Session(
@@ -269,12 +275,12 @@ class OktaApplicationClient(DocumentInsighter):
     def __init__(
             self,
             env: EnvType,
-            idp_id=os.getenv("INSIGHTER_CLIENT_IDP"),
-            client_id=os.getenv("INSIGHTER_CLIENT_ID"),
-            client_secret=os.getenv("INSIGHTER_CLIENT_SECRET"),
-            token_filename=os.getenv("INSIGHTER_CLIENT_TOKEN_PATH"),
-            token_json=os.getenv("INSIGHTER_CLIENT_TOKEN_JSON"),
-            tenant=os.getenv("INSIGHTER_TENANT"),
+            idp_id: Optional[str] = None,
+            client_id: Optional[str] = None,
+            client_secret: Optional[str] = None,
+            token_filename: Optional[str] = None,
+            token_json: Optional[str] = None,
+            tenant: Optional[str] = None,
     ):
         """
         The APIClient for communication with Document Insighter API.
@@ -291,6 +297,12 @@ class OktaApplicationClient(DocumentInsighter):
             env variable: INSIGHTER_CLIENT_TOKEN_PATH. init token can be passed
             with env variable INSIGHTER_CLIENT_TOKEN_JSON
         """
+        idp_id = idp_id or os.getenv("INSIGHTER_CLIENT_IDP")
+        client_id = client_id or os.getenv("INSIGHTER_CLIENT_ID")
+        client_secret = client_secret or os.getenv("INSIGHTER_CLIENT_SECRET")
+        token_filename = token_filename or os.getenv("INSIGHTER_CLIENT_TOKEN_PATH")
+        token_json = token_json or os.getenv("INSIGHTER_CLIENT_TOKEN_JSON")
+        tenant = tenant or os.getenv("INSIGHTER_TENANT")
         super().__init__(env, client_id, client_secret, token_filename, token_json, tenant)
         self.idp_id = idp_id
         self.oauth = OAuth2Session(
@@ -314,6 +326,7 @@ class OktaApplicationClient(DocumentInsighter):
             authorization_url, state = self.oauth.authorization_url(
                 self.AUTHORIZATION_URL_FORMAT % self.idp_id
             )
+            print("Please visit the following URL in your browser and copy the full redirect URL:")
             print(authorization_url)
             redirect_response = input("Paste the full redirect URL here:")
             token = self.oauth.fetch_token(
