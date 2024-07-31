@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Generator
+from typing import Generator, List
 
 from requests.sessions import merge_setting
 from requests.structures import CaseInsensitiveDict
@@ -160,6 +160,7 @@ class DocumentInsighter:
             start_date: datetime,
             end_date: datetime,
             page_size: int = 50,
+            tags: List[str] = None
     ) -> Generator:
         """Query extraction pages by dates
 
@@ -177,6 +178,10 @@ class DocumentInsighter:
             "page": 0,
             "size": page_size,
         }
+
+        if tags:
+            params["tags"] = tags or []
+
         res = self.oauth.get(
             f"{self.env.host}/api/extraction-exporting/extractions",
             params=params,

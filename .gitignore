@@ -132,3 +132,4 @@ dmypy.json
 insighter_token.json
 local/*
 /service-account-token.json
+.idea/

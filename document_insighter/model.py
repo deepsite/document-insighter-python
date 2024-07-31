@@ -91,3 +91,5 @@ class Extraction:
     receive_date: str
     receive_from: str
     data: Data
+    status: Optional[str] = field(default_factory=lambda: None)
+    tags: Optional[List[str]] = field(default_factory=lambda: [])
