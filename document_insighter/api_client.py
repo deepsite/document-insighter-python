@@ -70,6 +70,14 @@ class DocumentInsighter:
         return token
 
     def upload_document(self, category, file_path, metadata=None, ignore_duplicate=False):
+        """
+        Upload document to Document Insighter.
+
+        :param category: category of the document
+        :param file_path: path of the file
+        :param metadata: metadata of the document
+        :param ignore_duplicate: ignore duplicate check
+        """
         params = {"category": category, 'extracts[]': ['true']}
         files = {
             'fields': (None, json.dumps([metadata or {}]), 'application/json'),
@@ -99,6 +107,7 @@ class DocumentInsighter:
     def upload_and_poll(self, category: str, file_path: str, metadata: dict = None, timeout=600):
         """
         Upload a document and poll the extractions until it is completed or failed.
+
         :param category: extraction category
         :param file_path: local file path
         :param metadata: file metadata and channel log metadata
@@ -116,6 +125,12 @@ class DocumentInsighter:
         return extractions
 
     def get_channel_log_status(self, channel_log_id):
+        """
+        Get channel log status. the status can be UPLOADING, PROCESSING, COMPLETED, FAILED
+
+        :param channel_log_id: channel log id
+        :return: status
+        """
         res = self.oauth.get(
             f"{self.env.host}/api/document-channel-logs/{channel_log_id}/status",
             client_id=self.client_id,
@@ -125,6 +140,12 @@ class DocumentInsighter:
         return res.json()
 
     def get_channel_extractions_exporting(self, channel_log_id):
+        """
+        Get channel extractions, one document may have multiple extractions
+
+        :param channel_log_id: channel log id
+        :return: extractions
+        """
         res = self.oauth.get(
             f"{self.env.host}/api/extraction-exporting/document-channel-logs/{channel_log_id}/extractions",
             client_id=self.client_id,
@@ -141,6 +162,7 @@ class DocumentInsighter:
             page_size: int = 50,
     ) -> Generator:
         """Query extraction pages by dates
+
         :param category: extraction category, like NB_COA
         :param start_date: filter extraction processed after this date,
             start date is inclusive.
@@ -175,6 +197,17 @@ class DocumentInsighter:
 
 
 class ServiceAccountClient(DocumentInsighter):
+    """
+    The APIClient for communication with Document Insighter API through AWS Congito service account, instead of a user account.
+    which designs to be used in computer to computer communication.
+    """
+
+    def _load_token(self):
+        if self.token_json:
+            return self.token_json
+        if self.token_filename:
+            with open(self.token_filename) as f:
+                return json.load(f)
 
     def __init__(
             self,
@@ -208,11 +241,20 @@ class ServiceAccountClient(DocumentInsighter):
         self._append_default_headers()
 
     def fetch_token(self, force_fetch: bool = False):
+        """
+        Fetch token from token file or token json, if token file does not exist, download token json from the system settings pages.
+
+        :param force_fetch: force fetch token
+        """
         if not self.oauth.token:
             raise ValueError("Please download service account json and config token file.")
 
 
 class OktaApplicationClient(DocumentInsighter):
+    """
+    The APIClient for communication with Document Insighter API on behalf of user through okta. This is designed to be used for user data analysis.
+    """
+
     REDIRECT_URI = "https://localhost/callback"
     TOKEN_URL = "https://id.godeepsite.com/oauth2/default/v1/token"
     AUTHORIZATION_URL_FORMAT = (
@@ -257,6 +299,12 @@ class OktaApplicationClient(DocumentInsighter):
         self._append_default_headers()
 
     def fetch_token(self, force_fetch: bool = False):
+        """
+        Fetch token from okta, if token is expired, it will be refreshed with refresh token if it exists and valid. 
+        If not authenticated, it will output an authorization url and prompt user to visit it.
+        After authorization, please paste the full redirect URL to complete authentication.
+        """
+
         if not self.oauth.token or force_fetch:
             authorization_url, state = self.oauth.authorization_url(
                 self.AUTHORIZATION_URL_FORMAT % self.idp_id
