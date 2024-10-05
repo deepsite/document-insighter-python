@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from typing import Generator, List, Optional
 
@@ -322,14 +323,23 @@ class OktaApplicationClient(DocumentInsighter):
         If not authenticated, it will output an authorization url and prompt user to visit it.
         After authorization, please paste the full redirect URL to complete authentication.
         """
+        should_fetch = force_fetch or not self.oauth.token
+        if not should_fetch:
+            expires_at = self.oauth.token.get("expires_at")
+            if expires_at and expires_at < time.time():
+                print("The token is expired, please do the authentication as follows.")
+                should_fetch = True
 
-        if not self.oauth.token or force_fetch:
+        if should_fetch:
             authorization_url, state = self.oauth.authorization_url(
                 self.AUTHORIZATION_URL_FORMAT % self.idp_id
             )
-            print("Please visit the following URL in your browser and copy the full redirect URL:")
+            print("Please visit the following URL in your browser:")
             print(authorization_url)
-            redirect_response = input("Paste the full redirect URL here:")
+            redirect_response = input(
+                "Copy the FULL redirect url in the address bar and paste it here "
+                "(like https://localhost/callback?...):\n"
+            )
             token = self.oauth.fetch_token(
                 self.TOKEN_URL,
                 client_secret=self.client_secret,
