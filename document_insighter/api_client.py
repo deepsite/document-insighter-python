@@ -1,10 +1,13 @@
 import json
 import logging
 import os
+import sys
 import time
 from datetime import datetime
 from typing import Generator, List, Optional
 
+import requests
+from oauthlib.oauth2 import InvalidGrantError
 from requests.sessions import merge_setting
 from requests.structures import CaseInsensitiveDict
 from requests_oauthlib import OAuth2Session
@@ -317,20 +320,34 @@ class OktaApplicationClient(DocumentInsighter):
         )
         self._append_default_headers()
 
-    def fetch_token(self, force_fetch: bool = False):
+    def fetch_token(self, force_re_authorize: bool = False):
         """
         Fetch token from okta, if token is expired, it will be refreshed with refresh token if it exists and valid. 
         If not authenticated, it will output an authorization url and prompt user to visit it.
         After authorization, please paste the full redirect URL to complete authentication.
         """
-        should_fetch = force_fetch or not self.oauth.token
-        if not should_fetch:
+        should_re_authorize = force_re_authorize or not self.oauth.token
+        if not should_re_authorize:
             expires_at = self.oauth.token.get("expires_at")
             if expires_at and expires_at < time.time():
-                print("The token is expired, please do the authentication as follows.")
-                should_fetch = True
+                # Token expired, try to refresh it
+                auth = requests.auth.HTTPBasicAuth(self.client_id, self.client_secret)
+                try:
+                    self.oauth.refresh_token(self.TOKEN_URL, auth=auth)
+                except InvalidGrantError:
+                    print(
+                        f"The refresh_token is invalid/expired, please follow the following steps to re-authorize",
+                    )
+                    should_re_authorize = True
+                except Exception as e:
+                    print(
+                        f"Failed to refresh token due to {e}. Follow the following steps to re-authorize to see if "
+                        "the problem remains.",
+                        file=sys.stderr
+                    )
+                    should_re_authorize = True
 
-        if should_fetch:
+        if should_re_authorize:
             authorization_url, state = self.oauth.authorization_url(
                 self.AUTHORIZATION_URL_FORMAT % self.idp_id
             )
